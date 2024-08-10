@@ -5,6 +5,7 @@ Features:
 * Undump a blueprint back.
 * Print blueprint info.
 * Replace items/recipes (partial).
+* beltless mode (TBD)
 
 ## Binary releases
 
@@ -55,7 +56,7 @@ dspbp -i 'blueprint.txt' info
 
 ## Python bindings
 
-See [here](https://pypi.org/project/dspbp/).
+(Lack of support in this forked repo.)
 
 ## Acknowledgements
 

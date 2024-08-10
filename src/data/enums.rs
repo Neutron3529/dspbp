@@ -1,7 +1,7 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::fmt::Debug;
 use strum::{AsRefStr, EnumIter, EnumString};
-
+use crate::param::*;
 #[cfg_attr(feature = "python", pyo3::pyclass)]
 #[derive(
     TryFromPrimitive,
@@ -20,6 +20,7 @@ use strum::{AsRefStr, EnumIter, EnumString};
 pub enum DSPItem {
     //This comment is used to automatically regenerate enums, do not remove!
     //DSPItem enum start
+    None = 0,
     IronOre = 1001,
     CopperOre = 1002,
     SiliconOre = 1003,
@@ -129,6 +130,7 @@ pub enum DSPItem {
     SorterMKI = 2011,
     SorterMKII = 2012,
     SorterMKIII = 2013,
+    SorterMKIV = 2014,
     Splitter = 2020,
     AutomaticPiler = 2040,
     TrafficMonitor = 2030,
@@ -191,13 +193,22 @@ pub enum DSPItem {
     SoilPile = 1099,
     //DSPItem enum end
 }
-
 impl DSPItem {
+    pub fn to_i32(&self)->i32 {
+        Into::<u16>::into(*self) as i32
+    }
     pub fn is_belt(&self) -> bool {
         [
             Self::ConveyorBeltMKI,
             Self::ConveyorBeltMKII,
             Self::ConveyorBeltMKIII,
+        ]
+        .contains(self)
+    }
+    pub fn is_lab(&self) -> bool {
+        [
+            Self::MatrixLab,
+            Self::SelfevolutionLab,
         ]
         .contains(self)
     }
@@ -240,6 +251,7 @@ impl DSPItem {
 #[repr(u16)]
 pub enum DSPRecipe {
     //DSPRecipe enum start
+    None = 0,
     IronIngot = 1,
     Magnet = 2,
     CopperIngot = 3,
@@ -400,6 +412,9 @@ pub enum DSPRecipe {
 }
 
 impl DSPRecipe {
+    pub fn to_i32(&self)->i32 {
+        Into::<u16>::into(*self) as i32
+    }
     pub fn for_item(item: &DSPItem) -> Option<Self> {
         let foo: &str = item.as_ref();
         Self::try_from(foo).ok()
@@ -414,48 +429,6 @@ impl DSPRecipe {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
-pub enum DSPIcon {
-    Signal(u32),
-    Item(DSPItem),
-    Recipe(DSPRecipe),
-    Tech(u32),
-    Unknown(u32),
-}
-
-impl TryFrom<u32> for DSPIcon {
-    type Error = anyhow::Error;
-
-    fn try_from(n: u32) -> Result<Self, Self::Error> {
-        let me = if n < 1000 {
-            Self::Signal(n)
-        } else if n < 20000 {
-            Self::Item(DSPItem::try_from_primitive(n as u16)?)
-        } else if n < 40000 {
-            Self::Recipe(DSPRecipe::try_from_primitive((n - 20000) as u16)?)
-        } else if n < 60000 {
-            Self::Tech(n - 40000)
-        } else {
-            Self::Unknown(n)
-        };
-        Ok(me)
-    }
-}
-
-impl From<DSPIcon> for u32 {
-    fn from(value: DSPIcon) -> Self {
-        match value {
-            DSPIcon::Signal(v) => v,
-            DSPIcon::Item(v) => v.into(),
-            DSPIcon::Recipe(v) => {
-                let v: u16 = v.into();
-                v as u32 + 20000
-            }
-            DSPIcon::Tech(v) => v + 40000,
-            DSPIcon::Unknown(v) => v,
-        }
-    }
-}
 
 #[derive(TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Clone, Copy, Hash, Debug)]
 #[repr(u16)]
@@ -476,6 +449,9 @@ pub enum BPModel {
 }
 
 impl BPModel {
+    pub fn to_i32(&self)->i32 {
+        Into::<u16>::into(*self) as i32
+    }
     pub fn from_building(i: DSPItem) -> anyhow::Result<Self> {
         let o = match i {
             DSPItem::ConveyorBeltMKI => Self::ConveyorBeltMKI,

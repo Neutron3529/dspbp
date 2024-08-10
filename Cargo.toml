@@ -4,27 +4,26 @@ version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-clap = { version = "*", features = ["derive"] }
-flate2 = "*"
-base64 = "*"
-anyhow = "*"
-thiserror = "*"
-lazy_static = "*"
-serde = { version = "*", features = ["derive"], optional = true}
-binrw = "*"
-num_enum = "*"
-serde_json = {version = "*", optional = true }
-strum = { version = "*", features = ["derive"] }
-urlencoding = "*"
-log = "*"
-simple_logger = "*"
-pyo3 = { version = "*", optional = true, features = ["extension-module"] }
+anyhow = "1.0.86"
+base64 = "0.22.1"
+binrw = "0.14.0"
+clap = { version = "4.5.13", features = ["derive"] }
+flate2 = "1.0.31"
+log = "0.4.22"
+serde = { version = "1.0.205", features = ["derive"], optional = true }
+serde_json = { version = "1.0.122", optional = true }
+simple_logger = "5.0.0"
+thiserror = "1.0.63"
+urlencoding = "2.1.3"
 
 [features]
+verbose = []
 default = ["dump"]
 dump = ["serde", "serde_json"]
-python = ["pyo3"]
-
+serde_json = ["dep:serde_json"]
+# python = ["visit"] # ["pyo3"] # no support for python now.
+visit = []
+md5 = []
 [lib]
 name = "dspbp"
 crate-type = ["cdylib", "lib"]

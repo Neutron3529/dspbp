@@ -10,6 +10,7 @@ use super::{
 };
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "verbose", derive(Debug))]
 #[derive(BinRead, BinWrite)]
 pub struct StationHeader {
     #[br(little)]
@@ -42,6 +43,7 @@ impl StationHeader {
 }
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "verbose", derive(Debug))]
 #[derive(BinRead, BinWrite)]
 pub struct StationSlots {
     #[br(little)]
@@ -59,6 +61,7 @@ impl Visit for StationSlots {
 }
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "verbose", derive(Debug))]
 #[derive(BinRead, BinWrite)]
 pub struct StationStorage {
     #[br(little)]
@@ -80,6 +83,7 @@ impl Visit for StationStorage {
 }
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "verbose", derive(Debug))]
 #[derive(BinRead, BinWrite)]
 #[br(pre_assert(param_count == 2048))]
 #[br(import { is_interstellar: bool, param_count: usize })]

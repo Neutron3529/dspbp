@@ -1,11 +1,11 @@
-use crate::data::enums::{DSPItem, DSPRecipe};
+use crate::param::*;
 use std::{collections::HashMap, fmt::Display, hash::Hash};
 
 #[derive(Default)]
 pub struct Stats {
-    pub buildings: HashMap<DSPItem, usize>,
-    pub recipes: HashMap<DSPRecipe, usize>,
-    pub station_wares: HashMap<DSPItem, usize>,
+    pub buildings: HashMap<I16<DspItem>, usize>,
+    pub recipes: HashMap<I16<Recipe>, usize>,
+    pub station_wares: HashMap<I16<DspItem>, usize>,
 }
 
 impl Stats {
@@ -35,15 +35,15 @@ impl Stats {
         Ok(())
     }
 
-    pub fn add_building(&mut self, i: DSPItem) {
+    pub fn add_building(&mut self, i: I16<DspItem>) {
         Self::incmap(&mut self.buildings, i)
     }
 
-    pub fn add_recipe(&mut self, i: DSPRecipe) {
+    pub fn add_recipe(&mut self, i: I16<Recipe>) {
         Self::incmap(&mut self.recipes, i)
     }
 
-    pub fn add_station_ware(&mut self, i: DSPItem) {
+    pub fn add_station_ware(&mut self, i: I16<DspItem>) {
         Self::incmap(&mut self.station_wares, i)
     }
 }

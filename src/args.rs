@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-
 /// Dyson Sphere Program blueprint tool.
 ///
 /// For subcommand help, use 'dspbp help <subcommand>'.
@@ -9,15 +8,17 @@ pub struct Args {
     #[clap(subcommand)]
     pub command: Commands,
     /// Input file. If absent or '-', reads standard input.
+    /// When dump/undump mode is used, it is always the blueprint file.
     #[clap(short, long)]
     pub input: Option<String>,
     /// Output file. If absent or '-', writes to standard output.
+    /// When dump/undump mode is used, it is always the json file.
     #[clap(short, long)]
     pub output: Option<String>,
-    /// Compression level. Uses 6 by default, like DSP does. Set it to 9 for about 5% smaller
+    /// Compression level. Uses 9 by default, DSP uses 6. Set it to 9 for about 5% smaller
     /// blueprints that (almost certainly) still work fine.
-    #[clap(short, long, default_value_t = 6)]
-    pub compression_level: u32
+    #[clap(short, long, default_value_t = 9)]
+    pub compression_level: u32,
 }
 
 #[derive(Parser, Debug)]
@@ -58,6 +59,18 @@ pub struct DumpArgs {
     /// Locale to use. At the moment en and cn are supported. By default, en is used.
     #[clap(short = 'L', long)]
     pub locale: Option<String>,
+    /// rounding unit for location xy
+    #[clap(short, long, default_value_t = 0.05)]
+    pub xy_unit: f64,
+    /// rounding unit for angle yaw
+    #[clap(short, long, default_value_t = 1.)]
+    pub yaw_unit: f64,
+    /// do not use rounding, totally ignore the rounding parameters.
+    #[clap(short, long, default_value_t = false)]
+    pub no_rounding: bool,
+    /// verbose mode, output both match and mismatch
+    #[clap(short, long, default_value_t = false)]
+    pub verbose: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -67,7 +80,9 @@ pub enum Commands {
     Dump(DumpArgs),
     /// Undump blueprint from JSON to blueprint format.
     #[cfg(feature = "dump")]
-    Undump,
+    Undump(DumpArgs),
+    /// Trigger beltless mode, accept a blueprint in `.txt` or `.json` suffix, output `.json` or `.txt` if the output is not specific
+    Beltless(DumpArgs),
     /// Edit blueprint. Accepts more arguments.
     Edit(EditArgs),
     /// Print some blueprint info.

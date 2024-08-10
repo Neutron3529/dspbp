@@ -1,5 +1,4 @@
-use lazy_static::lazy_static;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 
 const K: &[u32; 64] = &[
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -12,8 +11,8 @@ const K: &[u32; 64] = &[
     0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
 ];
 
-lazy_static! {
-    static ref K_MD5F: HashMap<usize, u32> = HashMap::from([
+static K_MD5F: LazyLock<HashMap<usize, u32>> = LazyLock::new(|| {
+    HashMap::from([
         (1, 0xe8d7b756),
         (6, 0xa8304623),
         (12, 0x6b9f1122),
@@ -22,8 +21,10 @@ lazy_static! {
         (21, 0x02443453),
         (24, 0x21f1cde6),
         (27, 0x475a14ed),
-    ]);
-    static ref K_MD5FC: HashMap<usize, u32> = HashMap::from([
+    ])
+});
+static K_MD5FC: LazyLock<HashMap<usize, u32>> = LazyLock::new(|| {
+    HashMap::from([
         (1, 0xe8d7b756),
         (3, 0xc1bdceef),
         (6, 0xa8304623),
@@ -34,8 +35,8 @@ lazy_static! {
         (24, 0x23f1cde6),
         (27, 0x475a14ed),
         (34, 0x6d9d6121),
-    ]);
-}
+    ])
+});
 
 const S: &[usize; 64] = &[
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9,
@@ -43,6 +44,7 @@ const S: &[usize; 64] = &[
     21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
 ];
 
+#[cfg(feature = "md5")]
 const INIT_MD5: [u32; 4] = [
     u32::from_le_bytes([0x01, 0x23, 0x45, 0x67]),
     u32::from_le_bytes([0x89, 0xab, 0xcd, 0xef]),
@@ -59,6 +61,7 @@ const INIT_MD5F: [u32; 4] = [
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Algo {
+    #[cfg(feature = "md5")]
     MD5,
     MD5F,
     MD5FC,
@@ -74,6 +77,7 @@ pub type MD5Hash = [u8; 16];
 impl MD5 {
     pub fn new(algo: Algo) -> Self {
         let s = match algo {
+            #[cfg(feature = "md5")]
             Algo::MD5 => INIT_MD5,
             _ => INIT_MD5F,
         };
@@ -161,11 +165,11 @@ impl MD5 {
 
 #[cfg(test)]
 mod test {
+    use super::{Algo, MD5};
     use crate::md5::MD5Hash;
 
-    use super::{Algo, MD5};
-
     #[test]
+    #[cfg(feature = "md5")]
     fn test_md5_empty() {
         let hash = MD5::new(Algo::MD5).process(&[]);
         let expected: MD5Hash = [
@@ -176,6 +180,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "md5")]
     fn test_md5_reference() {
         let text =
             "12345678901234567890123456789012345678901234567890123456789012345678901234567890";

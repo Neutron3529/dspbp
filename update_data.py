@@ -73,7 +73,7 @@ def make_locale(file, items, enum_name, get_name):
     f = open(file, "w")
     f.write("&[\n")
     for i in items:
-        f.write(f"    ({enum_name}::{i.id}, \"{get_name(i)}\"),\n")
+        f.write(f"    ({i.number}, \"{get_name(i)}\"),\n")
     f.write("]\n")
     f.close()
 

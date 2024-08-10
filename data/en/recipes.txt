@@ -1,3 +1,4 @@
+0  None
 1  Iron Ingot
 2  Magnet
 3  Copper Ingot

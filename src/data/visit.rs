@@ -4,7 +4,8 @@ use super::{
     belt::Belt,
     blueprint::BlueprintData,
     building::Building,
-    station::{Station, StationSlots, StationStorage},
+    // station::{Station, StationSlots, StationStorage},
+    lab::Lab,
 };
 
 pub trait Visitor {
@@ -20,19 +21,23 @@ pub trait Visitor {
         v.visit(self)
     }
 
-    fn visit_station(&mut self, v: &mut Station) {
-        v.visit(self)
-    }
-
-    fn visit_station_storage(&mut self, v: &mut StationStorage) {
-        v.visit(self)
-    }
-
-    fn visit_station_slots(&mut self, v: &mut StationSlots) {
-        v.visit(self)
-    }
+    // fn visit_station(&mut self, v: &mut Station) {
+    //     v.visit(self)
+    // }
+    //
+    // fn visit_station_storage(&mut self, v: &mut StationStorage) {
+    //     v.visit(self)
+    // }
+    //
+    // fn visit_station_slots(&mut self, v: &mut StationSlots) {
+    //     v.visit(self)
+    // }
 
     fn visit_belt(&mut self, v: &mut Belt) {
+        v.visit(self)
+    }
+
+    fn visit_lab(&mut self, v: &mut Lab) {
         v.visit(self)
     }
 }

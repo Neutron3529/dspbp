@@ -3,8 +3,10 @@ use std::io::{Cursor, Read, Write};
 use std::str::FromStr;
 
 use crate::data::blueprint::BlueprintData;
+#[cfg(feature = "visit")]
 use crate::data::visit::{Visit, Visitor};
 use crate::error::{some_error, Error};
+use crate::thread_local::with_version;
 use base64::engine::GeneralPurpose;
 use base64::Engine;
 use binrw::{BinReaderExt, BinWrite};
@@ -15,11 +17,12 @@ use flate2::Compression;
 use serde::{Deserialize, Serialize};
 
 use crate::md5::{Algo, MD5Hash, MD5};
-
+use crate::param::*;
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "verbose", derive(Debug))]
 pub struct Blueprint {
     pub layout: u32,
-    pub icons: [u32; 5],
+    pub icons: [Param<IconId>; 5],
     pub timestamp: u64,
     pub game_version: String,
     pub icon_text: String,
@@ -47,6 +50,7 @@ impl Blueprint {
     }
 
     fn hash_str_to_hash(d: &str) -> anyhow::Result<MD5Hash> {
+        let d = d.trim();
         if d.len() != 32 {
             return Err(some_error(format!(
                 "Unexpected hash length, expected 32, got {}",
@@ -124,12 +128,18 @@ impl Blueprint {
             .try_into()
             .unwrap();
 
+        let icon_text = urlencoding::decode(icon_text)
+            .map(|x| x.into_owned())
+            .unwrap_or_else(|_| desc.to_string());
+        let desc = urlencoding::decode(desc)
+            .map(|x| x.into_owned())
+            .unwrap_or_else(|_| desc.to_string());
         let fixed0_1: u32 = Self::int(fixed0_1, "fixed0_1")?;
         let layout = Self::int(layout, "layout")?;
-        let icons: Vec<u32> = icons
+        let icons: Vec<Param<IconId>> = icons
             .into_iter()
-            .map(|x| Self::int(*x, "icon"))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|&x| Param(IconId::de(x)))
+            .collect::<Vec<Param<IconId>>>();
         let fixed0_2: u32 = Self::int(fixed0_2, "fixed0_2")?;
         let timestamp = Self::int(timestamp, "timestamp")?;
 
@@ -140,7 +150,7 @@ impl Blueprint {
             return Err(some_error("fixed0_2 is not 0"));
         }
 
-        let (data, raw_bp) = Self::unpack_data(b64data)?;
+        let (data, raw_bp) = with_version(game_version, || Self::unpack_data(b64data))?;
 
         Ok((
             Self {
@@ -156,17 +166,20 @@ impl Blueprint {
         ))
     }
     pub fn into_bp_string(&self, level: u32) -> anyhow::Result<String> {
-        let icons = self.icons.map(|x| x.to_string()).join(",");
-        let mut out = format!(
-            "BLUEPRINT:0,{},{},0,{},{},{},{}\"{}",
-            self.layout,
-            icons,
-            self.timestamp,
-            self.game_version,
-            self.icon_text,
-            self.desc,
-            self.pack_data(Compression::new(level))?
-        );
+        let icons = self.icons.map(|x| x.0.to_string()).join(",");
+        let mut out = with_version(&self.game_version, || {
+            format!(
+                "BLUEPRINT:0,{},{},0,{},{},{},{}\"{}",
+                self.layout,
+                icons,
+                self.timestamp,
+                self.game_version,
+                urlencoding::encode(&self.icon_text),
+                urlencoding::encode(&self.desc),
+                self.pack_data(Compression::new(level))
+                    .expect("cannot compress the data")
+            )
+        });
         let hash = Self::hash(&out);
         write!(&mut out, "\"").unwrap();
         for b in hash {
@@ -174,30 +187,48 @@ impl Blueprint {
         }
         Ok(out)
     }
+    pub fn txt_version(txt: &str) -> &str {
+        txt.split(r#"""#).nth(4).unwrap()
+    }
+
+    #[cfg(feature = "dump")]
+    pub fn json_version(json: &str) -> &str {
+        json.split_once(r#"game_version"#)
+            .expect("cannot find game version")
+            .1
+            .split(r#"""#)
+            .nth(1)
+            .expect("game version does not contains '\"'")
+    }
 
     #[cfg(feature = "dump")]
     pub fn new_from_json(json: &str) -> anyhow::Result<Self> {
-        Ok(serde_json::from_str(json)?)
+        with_version(Self::json_version(json), || Ok(serde_json::from_str(json)?))
     }
 
     #[cfg(feature = "dump")]
     pub fn dump_json(&self) -> anyhow::Result<Vec<u8>> {
-        Ok(serde_json::to_vec(self)?)
+        with_version(&self.game_version, || Ok(serde_json::to_vec(self)?))
+    }
+
+    #[cfg(feature = "dump")]
+    pub fn dump_json_pretty(&self) -> anyhow::Result<Vec<u8>> {
+        with_version(&self.game_version, || Ok(serde_json::to_vec_pretty(self)?))
     }
 
     pub fn get_description(&self) -> anyhow::Result<String> {
-        Ok(urlencoding::decode(&self.desc)?.into_owned())
+        Ok(self.desc.to_owned())
     }
 
     pub fn set_icon_text(&mut self, text: &str) {
-        self.icon_text = urlencoding::encode(text).into_owned();
+        self.icon_text = text.to_owned();
     }
 
     pub fn get_icon_text(&self) -> anyhow::Result<String> {
-        Ok(urlencoding::decode(&self.icon_text)?.into_owned())
+        Ok(self.icon_text.to_owned())
     }
 }
-
+#[cfg(feature = "visit")]
 impl Visit for Blueprint {
     fn visit<T: Visitor + ?Sized>(&mut self, visitor: &mut T) {
         visitor.visit_blueprint_data(&mut self.data)

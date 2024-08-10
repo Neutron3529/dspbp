@@ -1,3 +1,4 @@
+0  None
 1001  Iron Ore
 1002  Copper Ore
 1003  Silicon Ore
@@ -107,6 +108,7 @@
 2011  Sorter MK.I
 2012  Sorter MK.II
 2013  Sorter MK.III
+2014  Sorter MK.IV
 2020  Splitter
 2040  Automatic Piler
 2030  Traffic Monitor
