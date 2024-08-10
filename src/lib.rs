@@ -431,9 +431,9 @@ pub fn cmdline() -> anyhow::Result<()> {
                                 if dump.verbose {
                                     println!{"匹配: 分拣器{}的{label} {} 传送带{}(count {} -> {}, {} remains)", oi.0, if state { ":->" } else { "<-:" }, io.0, io.1, io.1-oi.1, io.2-1}
                                 }
-                                io.1 -= oi.1;
+                                io.1 -= (oi.1/10)*10;
                                 io.2 -= 1;
-                                if io.2 > 0 && io.1 > 0 {
+                                if io.2 > 0 && (io.1)/10 > 0 {
                                     iter2.push(io)
                                 }
                             } else {
