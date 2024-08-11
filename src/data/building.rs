@@ -3,7 +3,7 @@ use binrw::{BinRead, BinWrite};
 #[cfg(feature = "dump")]
 use serde::{Deserialize, Serialize};
 
-use super::{belt::Belt, lab::Lab, sorter::Sorter};
+use super::{belt::Belt, lab::Lab, sorter::Sorter, producer::Producer};
 use crate::param::*;
 
 #[cfg(feature = "visit")]
@@ -36,18 +36,25 @@ pub enum BuildingParam {
         Option<Belt>,
     ),
     #[br(pre_assert(building.is_lab()))]
-    Lab(
+    Lab (
         #[cfg_attr(feature = "verbose", br(dbg))]
         #[br(if(param_count != 0))]
         #[br(args(param_count))]
         Option<Lab>,
     ),
     #[br(pre_assert(building.is_sorter()))]
-    Sorter(
+    Sorter (
         #[cfg_attr(feature = "verbose", br(dbg))]
         #[br(if(param_count != 0))]
         #[br(args(param_count))]
         Option<Sorter>,
+    ),
+    #[br(pre_assert(building.is_producer()))]
+    Producer (
+        #[cfg_attr(feature = "verbose", br(dbg))]
+        #[br(if(param_count != 0))]
+        #[br(args(param_count))]
+        Option<Producer>,
     ),
     Unknown(
         #[cfg_attr(feature = "verbose", br(dbg))]

@@ -4,6 +4,7 @@ pub mod blueprint;
 pub mod building;
 pub mod lab;
 pub mod sorter;
+pub mod producer;
 //pub mod enums;
 // pub mod station;
 pub mod traits;

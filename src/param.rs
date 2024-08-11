@@ -138,6 +138,9 @@ impl I16<DspItem> {
     pub fn is_belt(&self) -> bool {
         Self::ConveyorBeltMKI <= self.0 && self.0 <= Self::ConveyorBeltMKIII
     }
+    pub fn is_producer(&self) -> bool {
+        [2303, 2304, 2305, 2318, 2302, 2315, 2319, 2308, 2309, 2317, 2310].contains(&self.0)
+    }
     pub fn is_lab(&self) -> bool {
         Self::MatrixLab <= self.0 && self.0 <= Self::SelfevolutionLab
     }
@@ -204,5 +207,27 @@ impl Name for IconId {
             Ok(IconId::Tech(_)) => Some("科技"),
             _ => None,
         }
+    }
+}
+
+pub struct ResearchMode;
+impl Name for ResearchMode {
+    fn name(i: i32) -> Option<&'static str> {
+        Some(match i {
+            0 => "未选择",
+             1 => "矩阵合成",
+             2 => "科研模式",
+             _ => return None,
+        })
+    }
+}
+pub struct AcceleratorMode;
+impl Name for AcceleratorMode {
+    fn name(i: i32) -> Option<&'static str> {
+        Some(match i {
+            0 => "额外产出",
+             1 => "生产加速",
+             _ => return None,
+        })
     }
 }

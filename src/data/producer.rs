@@ -8,10 +8,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
 #[derive(BinRead, BinWrite, PartialEq, Debug)]
 #[br(import(param_count: usize))]
-#[br(pre_assert(param_count == 2))]
+#[br(pre_assert(param_count == 1))]
 #[br(little)]
-pub struct Lab {
-    research: Param<ResearchMode>,
+pub struct Producer {
     accelerator: Param<AcceleratorMode>,
 }
 #[cfg(feature = "visit")]

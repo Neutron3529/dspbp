@@ -71,6 +71,10 @@ pub struct DumpArgs {
     /// verbose mode, output both match and mismatch
     #[clap(short, long, default_value_t = false)]
     pub verbose: bool,
+    /// priority unit, the input will divided by its value, the remainder becomes part of priority.
+    /// better greater than 0, 0 or less is not tested.
+    #[clap(short, long, default_value_t = 1)]
+    pub unit: i32,
 }
 
 #[derive(Subcommand, Debug)]

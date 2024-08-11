@@ -271,7 +271,6 @@ pub fn cmdline() -> anyhow::Result<()> {
                     } else {
                         itob(&mut input)?
                     };
-
                     // preprocess, move belt label to sorter
 
                     let mut cntr = [0; 3];
@@ -431,9 +430,9 @@ pub fn cmdline() -> anyhow::Result<()> {
                                 if dump.verbose {
                                     println!{"匹配: 分拣器{}的{label} {} 传送带{}(count {} -> {}, {} remains)", oi.0, if state { ":->" } else { "<-:" }, io.0, io.1, io.1-oi.1, io.2-1}
                                 }
-                                io.1 -= (oi.1/10)*10;
+                                io.1 -= (oi.1/dump.unit)*dump.unit;
                                 io.2 -= 1;
-                                if io.2 > 0 && (io.1)/10 > 0 {
+                                if io.2 > 0 && (io.1)/dump.unit > 0 {
                                     iter2.push(io)
                                 }
                             } else {
