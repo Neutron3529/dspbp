@@ -3,7 +3,7 @@ use binrw::{BinRead, BinWrite};
 #[cfg(feature = "dump")]
 use serde::{Deserialize, Serialize};
 
-use super::{belt::Belt, lab::Lab, sorter::Sorter, producer::Producer};
+use super::{belt::Belt, lab::Lab, producer::Producer, sorter::Sorter};
 use crate::param::*;
 
 #[cfg(feature = "visit")]
@@ -36,21 +36,21 @@ pub enum BuildingParam {
         Option<Belt>,
     ),
     #[br(pre_assert(building.is_lab()))]
-    Lab (
+    Lab(
         #[cfg_attr(feature = "verbose", br(dbg))]
         #[br(if(param_count != 0))]
         #[br(args(param_count))]
         Option<Lab>,
     ),
     #[br(pre_assert(building.is_sorter()))]
-    Sorter (
+    Sorter(
         #[cfg_attr(feature = "verbose", br(dbg))]
         #[br(if(param_count != 0))]
         #[br(args(param_count))]
         Option<Sorter>,
     ),
     #[br(pre_assert(building.is_producer()))]
-    Producer (
+    Producer(
         #[cfg_attr(feature = "verbose", br(dbg))]
         #[br(if(param_count != 0))]
         #[br(args(param_count))]
@@ -136,8 +136,8 @@ pub struct Building {
 #[cfg_attr(feature = "verbose", derive(Debug))]
 pub struct Edit {
     pub label: Param<IconId>,
-    // pub input_idx: i32,     // for beltless mode
-    // pub output_idx: i32,    // for beltless mode
+    pub input_idx: i32,  // for beltless mode
+    pub output_idx: i32, // for beltless mode
     // pub break_input: bool,  // for beltless mode
     // pub break_output: bool, // for beltless mode
     // pub switch_label: bool, // TODO.
@@ -148,6 +148,8 @@ impl Default for Edit {
     fn default() -> Self {
         Self {
             label: Param(0),
+            input_idx: -1,
+            output_idx: -1,
             // input_idx: -1,
             // output_idx: -1,
             // break_input: false,
