@@ -6,7 +6,7 @@ use binrw::{BinRead, BinWrite};
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
-#[derive(BinRead, BinWrite, PartialEq, Debug)]
+#[derive(BinRead, BinWrite, PartialEq, Debug, Clone)]
 #[br(import(param_count: usize))]
 #[br(pre_assert(param_count == 1))]
 #[br(little)]

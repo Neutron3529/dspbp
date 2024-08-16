@@ -18,7 +18,7 @@ use crate::thread_local::{is_v10, round_xy, round_yaw};
 // }
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
-#[derive(BinRead, BinWrite, PartialEq, Debug)]
+#[derive(BinRead, BinWrite, PartialEq, Debug, Clone)]
 #[br(import { param_count: usize, building: I16<DspItem> })]
 #[br(pre_assert(param_count <= 32768))]
 pub enum BuildingParam {
@@ -66,7 +66,7 @@ pub enum BuildingParam {
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "verbose", derive(Debug))]
-#[derive(BinRead, BinWrite)]
+#[derive(BinRead, BinWrite, Clone)]
 #[br(little)]
 pub struct BuildingHeader {
     #[brw(if(is_v10()))]
@@ -120,7 +120,7 @@ pub struct BuildingHeader {
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "verbose", derive(Debug))]
-#[derive(BinRead, BinWrite)]
+#[derive(BinRead, BinWrite, Clone)]
 pub struct Building {
     #[cfg_attr(feature = "verbose", br(dbg))]
     pub header: BuildingHeader,

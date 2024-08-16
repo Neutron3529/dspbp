@@ -35,12 +35,19 @@ pub trait Name: Sized {
     }
 }
 
-#[derive(BinRead, BinWrite, Clone, Copy)]
+#[derive(BinRead, BinWrite)]
 #[brw(little)]
 pub struct GenericParam<T: Name, G: Into<i32> + Nice + ToString + FromStr>(
     pub G,
     #[brw(ignore)] pub [PhantomData<T>; 0],
 );
+
+impl<T: Name, G: Nice + FromStr + Into<i32>> Clone for GenericParam<T, G> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl<T: Name, G: Nice + FromStr + Into<i32>> Copy for GenericParam<T, G> {}
 
 impl<T: Name, G: Into<i32> + ToString + Nice + FromStr> std::fmt::Display for GenericParam<T, G> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -135,11 +142,42 @@ impl I16<DspItem> {
     pub const SelfevolutionLab: i16 = 2902;
     pub const SorterMKI: i16 = 2011;
     pub const SorterMKIV: i16 = 2014;
+    pub const StorageTank: i16 = 2106;
+
+    pub const Splitter: i16 = 2020;
+    pub const AutomaticPiler: i16 = 2040;
+    pub const TrafficMonitor: i16 = 2030;
+    pub const SprayCoater: i16 = 2313;
+
+    pub const PlanetaryLogisticsStation: i16 = 2103;
+    pub const InterstellarLogisticsStation: i16 = 2104;
+    pub const AdvancedMiningMachine: i16 = 2316;
+
     pub fn is_belt(&self) -> bool {
         Self::ConveyorBeltMKI <= self.0 && self.0 <= Self::ConveyorBeltMKIII
     }
+    pub fn is_storage_tank(&self) -> bool {
+        self.0 == Self::StorageTank
+    }
+    pub fn is_logistics_station(&self) -> bool {
+        self.0 == Self::PlanetaryLogisticsStation
+            || self.0 == Self::InterstellarLogisticsStation
+            || self.0 == Self::AdvancedMiningMachine
+    }
+    pub fn is_belt_related(&self) -> bool {
+        self.is_belt()
+            || self.is_logistics_station()
+            || self.is_storage_tank()
+            || self.0 == Self::SprayCoater
+            || self.0 == Self::TrafficMonitor
+            || self.0 == Self::AutomaticPiler
+            || self.0 == Self::Splitter
+    }
     pub fn is_producer(&self) -> bool {
-        [2303, 2304, 2305, 2318, 2302, 2315, 2319, 2308, 2309, 2317, 2310].contains(&self.0)
+        [
+            2303, 2304, 2305, 2318, 2302, 2315, 2319, 2308, 2309, 2317, 2310,
+        ]
+        .contains(&self.0)
     }
     pub fn is_lab(&self) -> bool {
         Self::MatrixLab <= self.0 && self.0 <= Self::SelfevolutionLab
@@ -215,9 +253,9 @@ impl Name for ResearchMode {
     fn name(i: i32) -> Option<&'static str> {
         Some(match i {
             0 => "未选择",
-             1 => "矩阵合成",
-             2 => "科研模式",
-             _ => return None,
+            1 => "矩阵合成",
+            2 => "科研模式",
+            _ => return None,
         })
     }
 }
@@ -226,8 +264,8 @@ impl Name for AcceleratorMode {
     fn name(i: i32) -> Option<&'static str> {
         Some(match i {
             0 => "额外产出",
-             1 => "生产加速",
-             _ => return None,
+            1 => "生产加速",
+            _ => return None,
         })
     }
 }

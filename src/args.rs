@@ -54,7 +54,7 @@ pub struct EditArgs {
 pub struct DumpArgs {
     /// Use human readable names for IDs of various things.
     /// Such ouput is informational only and CANNOT BE UNDUMPED.
-    #[clap(short = 'H', long, default_value_t = false)]
+    #[clap(short = 'H', long, default_value_t = true)]
     pub human_readable: bool,
     /// Locale to use. At the moment en and cn are supported. By default, en is used.
     #[clap(short = 'L', long)]
@@ -75,6 +75,9 @@ pub struct DumpArgs {
     /// better greater than 0, 0 or less is not tested.
     #[clap(short, long, default_value_t = 1)]
     pub unit: i32,
+    /// Belt label that should be regard as broken, SIGNAL-510 (link broken) should be proper.
+    #[clap(short, long, default_value_t = -1)]
+    pub belt_label: i32,
 }
 
 #[derive(Subcommand, Debug)]

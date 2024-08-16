@@ -8,7 +8,7 @@ use crate::data::{area::Area, building::Building};
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "verbose", derive(Debug))]
-#[derive(BinRead, BinWrite)]
+#[derive(BinRead, BinWrite, Clone)]
 #[br(little)]
 pub struct Header {
     version: u32,
@@ -23,7 +23,7 @@ pub struct Header {
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "verbose", derive(Debug))]
-#[derive(BinRead, BinWrite)]
+#[derive(BinRead, BinWrite, Clone)]
 #[br(little)]
 pub struct BlueprintData {
     #[br(assert(header.version == 1))]

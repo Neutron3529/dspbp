@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "verbose", derive(Debug))]
-#[derive(BinRead, BinWrite)]
+#[derive(BinRead, BinWrite, Clone)]
 #[brw(little)]
 pub struct Area {
     index: i8,

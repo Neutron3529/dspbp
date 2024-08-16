@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::md5::{Algo, MD5Hash, MD5};
 use crate::param::*;
+#[derive(Clone)]
 #[cfg_attr(feature = "dump", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "verbose", derive(Debug))]
 pub struct Blueprint {

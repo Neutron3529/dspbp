@@ -88,19 +88,24 @@ fn itob(i: &mut Box<dyn ReadPlusSeek>) -> anyhow::Result<Blueprint> {
 
 /// Remover是必要的，因为戴森球会将index不连续的蓝图识别为无效蓝图
 pub struct Remover<'a>(
+    /// data
     &'a mut Vec<Building>,
+    /// rev index, data[this[index]].index == index
     HashMap<i32, i32>,
+    /// belt indexes
     Vec<i32>,
+    /// sorter indexes
     Vec<i32>,
+    /// Vec count modifier.
     &'a mut u32,
 );
 impl<'a> Remover<'a> {
     pub fn new(v: &'a mut crate::data::blueprint::BlueprintData) -> Self {
         let mut ret = Self(
-            &mut v.buildings, // data
-            HashMap::new(),   // rev index, data[this[index]].index == index
-            Vec::new(),       // belt indexes
-            Vec::new(),       // sorter indexes
+            &mut v.buildings,
+            HashMap::new(),
+            Vec::new(),
+            Vec::new(),
             &mut v.building_count,
         );
         for (n, i) in ret.0.iter().enumerate() {
@@ -165,16 +170,21 @@ pub fn input(args: &Args) -> anyhow::Result<Box<dyn ReadPlusSeek>> {
         Some(file) => Ok(Box::new(std::fs::File::open(file)?)),
     }
 }
-pub fn output(args: &Args) -> anyhow::Result<WriteSeek> {
+pub fn output(args: &Args, suffix: &str) -> anyhow::Result<WriteSeek> {
     match iof(&args.output) {
         None => Ok(WriteSeek::BufOut(Cursor::new(vec![]), std::io::stdout())),
-        Some(file) => Ok(WriteSeek::File(
-            std::fs::OpenOptions::new()
-                .write(true)
-                .truncate(true)
-                .create(true)
-                .open(file)?,
-        )),
+        Some(file) => {
+            let ext = file.rfind(".").unwrap_or(file.len());
+            let mut file = file.to_string();
+            file.insert_str(ext, suffix);
+            Ok(WriteSeek::File(
+                std::fs::OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .create(true)
+                    .open(file)?,
+            ))
+        }
     }
 }
 
@@ -192,7 +202,7 @@ pub fn dump(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
         },
         || {
             let mut input = input(&args)?;
-            let mut output = output(&args)?;
+            let mut output = output(&args, "")?;
             let bp = itob(&mut input)?;
 
             if dump.human_readable {
@@ -219,7 +229,7 @@ pub fn undump(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
         || {
             let mut data = vec![];
             let mut input = input(&args)?;
-            let mut output = output(&args)?;
+            let mut output = output(&args, "")?;
             input.read_to_end(&mut data)?;
             let data = String::from_utf8(data)?;
             let bp = Blueprint::new_from_json(&data)?;
@@ -449,7 +459,77 @@ pub fn beltless(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
                 }
             }
             rm.drop();
-            let mut output = output(&args)?;
+
+            loop {
+                if dump.belt_label == -1 {
+                    break;
+                }
+                // output B
+                let mut bp = bp.clone();
+                bp.desc += "-B";
+
+                // 删除传送带相关物品
+                // // 标记传送带
+                let mut rm = Remover::new(&mut bp.data);
+                let mut idx = -1;
+                for i in rm.2.iter().copied() {
+                    if rm[i].custom.label.0 == dump.belt_label {
+                        idx = i;
+                        break;
+                    }
+                }
+                if idx == -1 {
+                    println!("Warning: 找不到label为{}的传送带", dump.belt_label);
+                    break rm.drop();
+                }
+                // // 删除标记
+                let mut len = rm.0.len();
+                while len > 0 {
+                    len -= 1;
+                    if rm.0[len].header.item_id.is_belt_related() {
+                        if len as i32 != idx {
+                            rm.remove(len as i32);
+                        }
+                    }
+                }
+                rm.drop();
+
+                // 开始重定向失效爪子
+                // // 重新标记传送带
+                let rm = Remover::new(&mut bp.data);
+                let mut idx = -1;
+                for i in rm.2.iter().copied() {
+                    if rm[i].custom.label.0 == dump.belt_label {
+                        idx = i;
+                        break;
+                    }
+                }
+                if idx == -1 {
+                    unreachable!("在阶段2找不到label为{}的传送带", dump.belt_label);
+                }
+
+                let mut len = rm.3.len();
+                while len > 0 {
+                    len -= 1;
+                    if rm.0[rm.3[len] as usize].header.input_object_index == -1 {
+                        rm.0[rm.3[len] as usize].header.input_object_index = idx;
+                    }
+                    if rm.0[rm.3[len] as usize].header.output_object_index == -1 {
+                        rm.0[rm.3[len] as usize].header.output_object_index = idx;
+                    }
+                }
+                rm.drop();
+
+                let mut output = output(&args, "-A")?;
+                if output_is_json {
+                    output.write_all(&bp.dump_json_pretty()?)?;
+                } else {
+                    output.write_all(bp.into_bp_string(args.compression_level)?.as_bytes())?;
+                }
+                break;
+            }
+
+            let mut output = output(&args, if dump.belt_label == -1 { "" } else { "-B" })?;
             if output_is_json {
                 output.write_all(&bp.dump_json_pretty()?)?;
             } else {
