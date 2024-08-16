@@ -10,10 +10,10 @@ use std::{
 };
 // use crate::{data::visit::Visitor};
 use crate::data::building::{Building, BuildingParam::*};
+use crate::param::*;
 use crate::thread_local::with_rounding;
 use std::array;
 use std::collections::{BinaryHeap, HashMap};
-// use crate::param::*;
 pub(crate) mod args;
 pub(crate) mod blueprint;
 pub(crate) mod data;
@@ -133,8 +133,31 @@ impl<'a> Remover<'a> {
             *self.1.entry(self.0[i as usize].header.index).or_default() = i;
         }
     }
-    pub fn drop(self) {
+    pub fn drop(mut self) {
         *self.4 = self.0.len() as u32;
+        self.0.iter_mut().for_each(|b| {
+            for x in [
+                &mut b.header.index,
+                &mut b.header.output_object_index,
+                &mut b.header.input_object_index,
+            ] {
+                *x = *self.1.get(x).unwrap_or(x)
+            }
+        });
+        assert!(self.0.is_sorted_by_key(|x| x.header.index));
+        self.0.sort_by_key(|x| {
+            ((x.header.item_id.0 as u128) << 112)
+                | ((x.header.recipe_id.0 as u128) << 96)
+                | ((x.header.local_offset_x.to_bits() as u128) << 64)
+                | ((x.header.local_offset_y.to_bits() as u128) << 32)
+                | (x.header.local_offset_z.to_bits() as u128)
+        });
+        self.1.extend(
+            self.0
+                .iter()
+                .enumerate()
+                .map(|(n, x)| (x.header.index, n as i32)),
+        );
         self.0.iter_mut().for_each(|b| {
             for x in [
                 &mut b.header.index,
@@ -189,7 +212,7 @@ pub fn output(args: &Args, suffix: &str) -> anyhow::Result<WriteSeek> {
 }
 
 #[cfg(feature = "dump")]
-pub fn dump(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
+pub fn dump(args: Args, dump: DumpArgs) -> anyhow::Result<()> {
     let _ = match &dump.locale {
         None => GLOBAL_SERIALIZATION_LOCALE.set(Locale::cn),
         Some(s) => GLOBAL_SERIALIZATION_LOCALE.set(Locale::try_from_user_string(s)?),
@@ -201,55 +224,42 @@ pub fn dump(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
             [dump.xy_unit, dump.yaw_unit]
         },
         || {
-            let mut input = input(&args)?;
-            let mut output = output(&args, "")?;
-            let bp = itob(&mut input)?;
-
-            if dump.human_readable {
-                output.write_all(&bp.dump_json_pretty()?)?;
+            let bp = if is_json(args.input.as_deref()) {
+                let mut data = vec![];
+                let mut input = input(&args)?;
+                input.read_to_end(&mut data)?;
+                let data = String::from_utf8(data)?;
+                Blueprint::new_from_json(&data)
             } else {
-                output.write_all(&bp.dump_json()?)?;
+                let mut input = input(&args)?;
+                itob(&mut input)
+            }?;
+
+            let mut output = output(&args, "")?;
+            if is_json(args.output.as_deref()) {
+                if dump.human_readable {
+                    output.write_all(&bp.dump_json_pretty()?)?;
+                } else {
+                    output.write_all(&bp.dump_json()?)?;
+                }
+            } else {
+                output.write_all(bp.into_bp_string(args.compression_level)?.as_bytes())?;
             }
             Ok::<(), anyhow::Error>(output.flush_if_stdout()?)
         },
     )
 }
-#[cfg(feature = "dump")]
-pub fn undump(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
+
+pub fn is_json(s: Option<&str>) -> bool {
+    s.map(|x| x.ends_with(".json")).unwrap_or(false)
+}
+pub fn beltless(args: Args, mut dump: DumpArgs) -> anyhow::Result<()> {
+    let output_is_json = is_json(args.output.as_deref());
+    let input_is_json = is_json(args.input.as_deref());
     let _ = match &dump.locale {
         None => GLOBAL_SERIALIZATION_LOCALE.set(Locale::cn),
         Some(s) => GLOBAL_SERIALIZATION_LOCALE.set(Locale::try_from_user_string(s)?),
     };
-    with_rounding(
-        if dump.no_rounding {
-            [0.; 2]
-        } else {
-            [dump.xy_unit, dump.yaw_unit]
-        },
-        || {
-            let mut data = vec![];
-            let mut input = input(&args)?;
-            let mut output = output(&args, "")?;
-            input.read_to_end(&mut data)?;
-            let data = String::from_utf8(data)?;
-            let bp = Blueprint::new_from_json(&data)?;
-            output.write_all(bp.into_bp_string(args.compression_level)?.as_bytes())?;
-            Ok::<(), anyhow::Error>(output.flush_if_stdout()?)
-        },
-    )
-}
-
-pub fn beltless(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
-    let output_is_json = args
-        .output
-        .as_ref()
-        .map(|x| x.ends_with(".json"))
-        .unwrap_or(false);
-    let input_is_json = args
-        .input
-        .as_ref()
-        .map(|x| x.ends_with(".json"))
-        .unwrap_or(false);
     with_rounding(
         if dump.no_rounding {
             [0.; 2]
@@ -394,7 +404,9 @@ pub fn beltless(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
                         }
                     }
                 } else {
-                    eprintln!("分拣器{}的输入与输出均接触到带标记的传送带？", idx)
+                    let belt_input = input >= 0 && rm[input].custom.label.0 != 0;
+                    let belt_output = output >= 0 && rm[output].custom.label.0 != 0;
+                    eprintln!("分拣器{}的输入与输出均接触到带标记的传送带？ input {} = {}, output {} = {}, io state = {} {}", idx, input, if input !=-1 {rm[input].header.item_id} else {I16(-1)}, output, if output !=-1 {rm[output].header.item_id} else {I16(-1)}, belt_input, belt_output)
                 }
             }
             println! {"sorter: {} consumer, {} producer, {} total.",scnt[0], scnt[1], scnt[2]}
@@ -460,6 +472,7 @@ pub fn beltless(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
             }
             rm.drop();
 
+            let mut idx = -1;
             loop {
                 if dump.belt_label == -1 {
                     break;
@@ -471,7 +484,6 @@ pub fn beltless(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
                 // 删除传送带相关物品
                 // // 标记传送带
                 let mut rm = Remover::new(&mut bp.data);
-                let mut idx = -1;
                 for i in rm.2.iter().copied() {
                     if rm[i].custom.label.0 == dump.belt_label {
                         idx = i;
@@ -480,6 +492,7 @@ pub fn beltless(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
                 }
                 if idx == -1 {
                     println!("Warning: 找不到label为{}的传送带", dump.belt_label);
+                    dump.belt_label = -1;
                     break rm.drop();
                 }
                 // // 删除标记
@@ -529,6 +542,29 @@ pub fn beltless(args: &Args, dump: &DumpArgs) -> anyhow::Result<()> {
                 break;
             }
 
+            if dump.belt_label != -1 {
+                let mut rm = Remover::new(&mut bp.data);
+                if rm[idx].custom.label.0 != dump.belt_label {
+                    unreachable!(
+                        "idx been modified, idx={idx} should have labe {}, but {} found.",
+                        Param::<IconId>(dump.belt_label),
+                        rm[idx].custom.label
+                    )
+                } else {
+                    rm.remove(idx)
+                }
+                let mut len = rm.0.len();
+                while len > 0 {
+                    len -= 1;
+                    if rm.0[len].header.item_id.is_producer() || rm.0[len].header.item_id.is_lab() {
+                        if len as i32 != idx {
+                            rm.remove(len as i32);
+                        }
+                    }
+                }
+                rm.drop();
+            }
+
             let mut output = output(&args, if dump.belt_label == -1 { "" } else { "-B" })?;
             if output_is_json {
                 output.write_all(&bp.dump_json_pretty()?)?;
@@ -556,12 +592,12 @@ pub fn cmdline() -> anyhow::Result<()> {
         }
     }
 
-    match args.command {
+    match std::mem::take(&mut args.command) {
         #[cfg(feature = "dump")]
-        Commands::Dump(ref dump) => crate::dump(&args, dump)?,
+        Commands::Dump(dump) => crate::dump(args, dump)?,
         #[cfg(feature = "dump")]
-        Commands::Undump(ref dump) => crate::undump(&args, dump)?,
-        Commands::Beltless(ref dump) => crate::beltless(&args, dump)?,
+        Commands::Undump(dump) => crate::dump(args, dump)?,
+        Commands::Beltless(dump) => crate::beltless(args, dump)?,
         // Commands::Edit(eargs) => {
         // }
         // Commands::Info => {

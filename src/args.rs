@@ -52,8 +52,8 @@ pub struct EditArgs {
 #[derive(Parser, Debug)]
 #[clap()]
 pub struct DumpArgs {
-    /// Use human readable names for IDs of various things.
-    /// Such ouput is informational only and CANNOT BE UNDUMPED.
+    /// Disable human readable names for IDs of various things.
+    /// Ouput without human readable supported CANNOT BE UNDUMPED.
     #[clap(short = 'H', long, default_value_t = true)]
     pub human_readable: bool,
     /// Locale to use. At the moment en and cn are supported. By default, en is used.
@@ -80,12 +80,12 @@ pub struct DumpArgs {
     pub belt_label: i32,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Default)]
 pub enum Commands {
-    /// Dump blueprint to JSON.
+    /// Dump blueprint from txt/json to txt/json with specific compression level(if output is txt) and rounding(if specificed).
     #[cfg(feature = "dump")]
     Dump(DumpArgs),
-    /// Undump blueprint from JSON to blueprint format.
+    /// Similar to dump but switch the input and the output.
     #[cfg(feature = "dump")]
     Undump(DumpArgs),
     /// Trigger beltless mode, accept a blueprint in `.txt` or `.json` suffix, output `.json` or `.txt` if the output is not specific
@@ -93,6 +93,7 @@ pub enum Commands {
     /// Edit blueprint. Accepts more arguments.
     Edit(EditArgs),
     /// Print some blueprint info.
+    #[default]
     Info,
     /// Print item names.
     Items,
