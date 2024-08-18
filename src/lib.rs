@@ -557,9 +557,7 @@ pub fn beltless(args: Args, mut dump: DumpArgs) -> anyhow::Result<()> {
                 while len > 0 {
                     len -= 1;
                     if rm.0[len].header.item_id.is_producer() || rm.0[len].header.item_id.is_lab() {
-                        if len as i32 != idx {
-                            rm.remove(len as i32);
-                        }
+                        rm.remove(len as i32);
                     }
                 }
                 rm.drop();
