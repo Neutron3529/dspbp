@@ -224,7 +224,7 @@ pub fn dump(args: Args, dump: DumpArgs) -> anyhow::Result<()> {
             [dump.xy_unit, dump.yaw_unit]
         },
         || {
-            let bp = if is_json(args.input.as_deref()) {
+            let mut bp = if is_json(args.input.as_deref()) {
                 let mut data = vec![];
                 let mut input = input(&args)?;
                 input.read_to_end(&mut data)?;
@@ -234,7 +234,7 @@ pub fn dump(args: Args, dump: DumpArgs) -> anyhow::Result<()> {
                 let mut input = input(&args)?;
                 itob(&mut input)
             }?;
-
+            Remover::new(&mut bp.data).drop();
             let mut output = output(&args, "")?;
             if is_json(args.output.as_deref()) {
                 if dump.human_readable {
@@ -557,7 +557,7 @@ pub fn beltless(args: Args, mut dump: DumpArgs) -> anyhow::Result<()> {
                 while len > 0 {
                     len -= 1;
                     if rm.0[len].header.item_id.is_producer() || rm.0[len].header.item_id.is_lab() {
-                        rm.remove(len as i32);
+                        rm.remove(rm.0[len].header.index);
                     }
                 }
                 rm.drop();
