@@ -11,7 +11,7 @@ pub struct Args {
     /// When dump/undump mode is used, it is always the blueprint file.
     #[clap(short, long)]
     pub input: Option<String>,
-    /// Output file. If absent or '-', writes to standard output.
+    /// Output file. If '-', writes to standard output, else if optional but input is not optional, use input with ext `.json`.
     /// When dump/undump mode is used, it is always the json file.
     #[clap(short, long)]
     pub output: Option<String>,
@@ -19,6 +19,9 @@ pub struct Args {
     /// blueprints that (almost certainly) still work fine.
     #[clap(short, long, default_value_t = 9)]
     pub compression_level: u32,
+    /// decide whether sort the blueprint. Default: true
+    #[clap(short, long, default_value_t = true)]
+    pub sort: bool,
 }
 
 #[derive(Parser, Debug)]

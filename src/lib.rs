@@ -11,7 +11,7 @@ use std::{
 // use crate::{data::visit::Visitor};
 use crate::data::building::{Building, BuildingParam::*};
 use crate::param::*;
-use crate::thread_local::with_rounding;
+use crate::config::with_rounding;
 use std::array;
 use std::collections::{BinaryHeap, HashMap};
 pub(crate) mod args;
@@ -24,8 +24,8 @@ pub(crate) mod md5;
 // #[cfg(feature = "python")]
 // pub(crate) mod python;
 // pub(crate) mod stats;
-#[cfg(test)]
-pub(crate) mod testutil;
+// #[cfg(test)]
+// pub(crate) mod testutil;
 
 fn iof(arg: &Option<String>) -> Option<&str> {
     match arg.as_ref().map(|x| x.as_ref()) {
@@ -145,29 +145,33 @@ impl<'a> Remover<'a> {
             }
         });
         assert!(self.0.is_sorted_by_key(|x| x.header.index));
-        self.0.sort_by_key(|x| {
-            ((x.header.item_id.0 as u128) << 112)
-                | ((x.header.recipe_id.0 as u128) << 96)
-                | ((x.header.local_offset_x.to_bits() as u128) << 64)
-                | ((x.header.local_offset_y.to_bits() as u128) << 32)
-                | (x.header.local_offset_z.to_bits() as u128)
-        });
-        self.1.extend(
-            self.0
-                .iter()
-                .enumerate()
-                .map(|(n, x)| (x.header.index, n as i32)),
-        );
-        self.0.iter_mut().for_each(|b| {
-            for x in [
-                &mut b.header.index,
-                &mut b.header.output_object_index,
-                &mut b.header.input_object_index,
-            ] {
-                *x = *self.1.get(x).unwrap_or(x)
-            }
-        });
-        assert!(self.0.is_sorted_by_key(|x| x.header.index));
+        
+        // sort
+        if config::get_sort() {
+            self.0.sort_by_key(|x| {
+                ((x.header.item_id.0 as u128) << 112)
+                    | ((x.header.recipe_id.0 as u128) << 96)
+                    | ((x.header.local_offset_x.to_bits() as u128) << 64)
+                    | ((x.header.local_offset_y.to_bits() as u128) << 32)
+                    | (x.header.local_offset_z.to_bits() as u128)
+            });
+            self.1.extend(
+                self.0
+                    .iter()
+                    .enumerate()
+                    .map(|(n, x)| (x.header.index, n as i32)),
+            );
+            self.0.iter_mut().for_each(|b| {
+                for x in [
+                    &mut b.header.index,
+                    &mut b.header.output_object_index,
+                    &mut b.header.input_object_index,
+                ] {
+                    *x = *self.1.get(x).unwrap_or(x)
+                }
+            });
+            assert!(self.0.is_sorted_by_key(|x| x.header.index));
+        }
     }
 }
 impl<'a> std::ops::Index<i32> for Remover<'a> {
@@ -589,6 +593,7 @@ pub fn cmdline() -> anyhow::Result<()> {
             args.output = Some(format!("{input}.json"))
         }
     }
+    config::set_sort(args.sort);
 
     match std::mem::take(&mut args.command) {
         #[cfg(feature = "dump")]
@@ -615,10 +620,11 @@ pub fn cmdline() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub mod thread_local {
+pub mod config {
     use std::cell::Cell;
     thread_local! {
         static UNIT: Cell<[f64;2]> = Cell::new([0.;2]);
+        static SORT: Cell<bool> = Cell::new(true);
     }
     pub fn with_rounding<T, F: FnOnce() -> T>(unit: [f64; 2], f: F) -> T {
         struct Scoped([f64; 2]);
@@ -633,6 +639,14 @@ pub mod thread_local {
             Scoped(prev)
         });
         f()
+    }
+    /// Get the current sort flag. Defaults to true.
+    pub fn get_sort() -> bool {
+        SORT.with(|cx| cx.get())
+    }
+    /// Get the current sort flag. Defaults to true.
+    pub fn set_sort(i:bool) {
+        SORT.with(|cx| cx.set(i))
     }
     /// Get the current locale. Panics if there isn't one.
     pub fn get_unit(i: usize) -> f64 {

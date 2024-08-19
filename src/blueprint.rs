@@ -6,7 +6,7 @@ use crate::data::blueprint::BlueprintData;
 #[cfg(feature = "visit")]
 use crate::data::visit::{Visit, Visitor};
 use crate::error::{some_error, Error};
-use crate::thread_local::with_version;
+use crate::config::with_version;
 use base64::engine::GeneralPurpose;
 use base64::Engine;
 use binrw::{BinReaderExt, BinWrite};
@@ -188,9 +188,9 @@ impl Blueprint {
         }
         Ok(out)
     }
-    pub fn txt_version(txt: &str) -> &str {
-        txt.split(r#"""#).nth(4).unwrap()
-    }
+    // pub fn txt_version(txt: &str) -> &str {
+    //     txt.split(r#"""#).nth(4).unwrap()
+    // }
 
     #[cfg(feature = "dump")]
     pub fn json_version(json: &str) -> &str {
@@ -217,17 +217,17 @@ impl Blueprint {
         with_version(&self.game_version, || Ok(serde_json::to_vec_pretty(self)?))
     }
 
-    pub fn get_description(&self) -> anyhow::Result<String> {
-        Ok(self.desc.to_owned())
-    }
+    // pub fn get_description(&self) -> anyhow::Result<String> {
+    //     Ok(self.desc.to_owned())
+    // }
 
-    pub fn set_icon_text(&mut self, text: &str) {
-        self.icon_text = text.to_owned();
-    }
+    // pub fn set_icon_text(&mut self, text: &str) {
+    //     self.icon_text = text.to_owned();
+    // }
 
-    pub fn get_icon_text(&self) -> anyhow::Result<String> {
-        Ok(self.icon_text.to_owned())
-    }
+    // pub fn get_icon_text(&self) -> anyhow::Result<String> {
+    //     Ok(self.icon_text.to_owned())
+    // }
 }
 #[cfg(feature = "visit")]
 impl Visit for Blueprint {

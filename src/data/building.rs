@@ -8,7 +8,7 @@ use crate::param::*;
 
 #[cfg(feature = "visit")]
 use super::visit::{Visit, Visitor};
-use crate::thread_local::{is_v10, round_xy, round_yaw};
+use crate::config::{is_v10, round_xy, round_yaw};
 
 // fn b_is(i: ItemId<u16>, f: fn(&DspItem) -> bool) -> bool {
 //     i.try_into().as_ref().map(f).unwrap_or_else(|_|{
